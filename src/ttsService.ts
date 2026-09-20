@@ -202,7 +202,16 @@ export class TtsService {
 		if (requestId !== this.currentRequestId) return;
 
 		const synth = window.speechSynthesis;
-		synth.cancel();
+
+		// iOS/WebKit can clip or garble the start of an utterance if speak()
+		// is called in the same tick right after cancel(). Only cancel when
+		// something is actually in flight, and give WebKit a moment to settle
+		// before speaking again.
+		if (synth.speaking || synth.pending) {
+			synth.cancel();
+			await new Promise((resolve) => window.setTimeout(resolve, 50));
+			if (requestId !== this.currentRequestId) return;
+		}
 
 		const utterance = new SpeechSynthesisUtterance(trimmed);
 		utterance.lang = options.lang;
