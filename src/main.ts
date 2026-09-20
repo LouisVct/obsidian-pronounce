@@ -8,6 +8,9 @@ interface PronounceOptions {
 	sourcePath?: string;
 }
 
+/** Repeat-click window: a 2nd click on the same word within this delay speaks it slowly. */
+const REPEAT_CLICK_WINDOW_MS = 3000;
+
 export default class PronouncePlugin extends Plugin {
 	settings: PronounceSettings;
 	tts: TtsService = new TtsService();
@@ -15,6 +18,11 @@ export default class PronouncePlugin extends Plugin {
 	/** Priority 2 of the language cascade: a manual pick from the status bar, kept for the session only. */
 	private sessionLanguageByFile: Map<string, string> = new Map();
 	private statusBarEl: HTMLElement;
+
+	/** Google Translate-style repeat-click: 2nd click on the same word soon after speaks it slowly. */
+	private lastSpokenText: string | null = null;
+	private lastSpokenAt = 0;
+	private lastSpokenWasSlow = false;
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
@@ -115,12 +123,32 @@ export default class PronouncePlugin extends Plugin {
 	async pronounce(text: string, options: PronounceOptions = {}): Promise<void> {
 		const lang = this.resolveLanguage(options.sourcePath, options.forcedLang);
 		const voiceURI = this.settings.voicesByLanguage[lang];
+		const rate = this.nextPronounceRate(text);
 		await this.tts.speak(text, {
 			lang,
 			voiceURI,
-			rate: this.settings.rate,
+			rate,
 			pitch: this.settings.pitch,
 		});
+	}
+
+	/**
+	 * Google Translate-style repeat-click: the first click on a word speaks it
+	 * at the configured rate; a 2nd click on that same word within
+	 * REPEAT_CLICK_WINDOW_MS speaks it slowly; the click after that (or one
+	 * arriving once the window has lapsed) starts the cycle over at normal
+	 * speed.
+	 */
+	private nextPronounceRate(text: string): number {
+		const now = Date.now();
+		const isRepeat = this.lastSpokenText === text && now - this.lastSpokenAt <= REPEAT_CLICK_WINDOW_MS;
+		const useSlowRate = isRepeat && !this.lastSpokenWasSlow;
+
+		this.lastSpokenText = text;
+		this.lastSpokenAt = now;
+		this.lastSpokenWasSlow = useSlowRate;
+
+		return useSlowRate ? Math.max(0.2, this.settings.rate * 0.5) : this.settings.rate;
 	}
 
 	openLanguageMenu(evt?: MouseEvent): void {

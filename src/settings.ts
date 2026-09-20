@@ -1,5 +1,6 @@
 import { App, Notice, PluginSettingTab, Setting } from "obsidian";
 import type PronouncePlugin from "./main";
+import { isNoveltyVoice, voiceQualityScore } from "./ttsService";
 
 export interface PronounceLanguage {
 	code: string; // BCP-47, e.g. "sv-SE"
@@ -108,8 +109,13 @@ export class PronounceSettingTab extends PluginSettingTab {
 			);
 			voiceSetting.addDropdown((dropdown) => {
 				dropdown.addOption("", "System default");
-				for (const voice of voices) {
-					dropdown.addOption(voice.voiceURI, `${voice.name} (${voice.lang})`);
+				const lang = this.plugin.settings.defaultLanguage;
+				const sorted = [...voices].sort((a, b) => voiceQualityScore(b, lang) - voiceQualityScore(a, lang));
+				for (const voice of sorted) {
+					const label = isNoveltyVoice(voice)
+						? `[Novelty] ${voice.name} (${voice.lang})`
+						: `${voice.name} (${voice.lang})`;
+					dropdown.addOption(voice.voiceURI, label);
 				}
 				dropdown.setValue(this.plugin.settings.voicesByLanguage[this.plugin.settings.defaultLanguage] ?? "");
 				dropdown.onChange(async (value) => {
@@ -123,10 +129,12 @@ export class PronounceSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Speech rate")
-			.setDesc("How fast the voice speaks. Lower is slower, useful for hearing foreign sounds clearly.")
+			.setDesc(
+				"How fast the voice speaks. Lower is slower, useful for hearing foreign sounds clearly. Clicking the same word twice within 3 seconds always speaks it slowly, regardless of this setting."
+			)
 			.addSlider((slider) =>
 				slider
-					.setLimits(0.5, 1.5, 0.05)
+					.setLimits(0.2, 1.5, 0.05)
 					.setValue(this.plugin.settings.rate)
 					.setDynamicTooltip()
 					.onChange(async (value) => {
