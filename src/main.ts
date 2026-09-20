@@ -155,7 +155,7 @@ export default class PronouncePlugin extends Plugin {
 			this.isSlowToggle = false;
 		}
 
-		return this.isSlowToggle ? Math.max(0.25, this.settings.rate * 0.5) : this.settings.rate;
+		return this.isSlowToggle ? this.settings.slowRate : this.settings.rate;
 	}
 
 	openLanguageMenu(evt?: MouseEvent): void {

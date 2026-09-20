@@ -50,7 +50,10 @@ export interface PronounceSettings {
 	triggerChar: string;
 	/** BCP-47 code used when no other rule in the priority cascade applies. */
 	defaultLanguage: string;
+	/** Speed used on the first click. */
 	rate: number;
+	/** Speed used on repeat clicks on the same word (Google Translate slow-motion mode). */
+	slowRate: number;
 	pitch: number;
 	showInContextMenu: boolean;
 	/** Preferred voiceURI per language code, set from the settings tab. */
@@ -61,6 +64,7 @@ export const DEFAULT_SETTINGS: PronounceSettings = {
 	triggerChar: "~",
 	defaultLanguage: "en-US",
 	rate: 0.85,
+	slowRate: 0.4,
 	pitch: 1.0,
 	showInContextMenu: true,
 	voicesByLanguage: {},
@@ -138,17 +142,29 @@ export class PronounceSettingTab extends PluginSettingTab {
 		containerEl.createEl("h3", { text: "Voice tuning" });
 
 		new Setting(containerEl)
-			.setName("Speech rate")
-			.setDesc(
-				"How fast the voice speaks. Lower is slower, useful for hearing foreign sounds clearly. Clicking the same word twice within 3 seconds always speaks it slowly, regardless of this setting."
-			)
+			.setName("Normal speech rate")
+			.setDesc("Speed used on the first click.")
 			.addSlider((slider) =>
 				slider
-					.setLimits(0.3, 1.1, 0.05)
+					.setLimits(0.5, 1.1, 0.05)
 					.setValue(this.plugin.settings.rate)
 					.setDynamicTooltip()
 					.onChange(async (value) => {
 						this.plugin.settings.rate = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("Slow speech rate")
+			.setDesc("Speed used on repeated clicks on the same word (Google Translate slow-motion mode).")
+			.addSlider((slider) =>
+				slider
+					.setLimits(0.2, 0.8, 0.05)
+					.setValue(this.plugin.settings.slowRate)
+					.setDynamicTooltip()
+					.onChange(async (value) => {
+						this.plugin.settings.slowRate = value;
 						await this.plugin.saveSettings();
 					})
 			);

@@ -31,9 +31,9 @@ Linux, iOS and Android.
     Settings → Hotkeys).
 - **Slow down on repeat, Google Translate-style.** Click the same `🔊` button
   (or repeat the **Pronounce selected text** command on the same text) right
-  after the first play, and it speaks at half speed so you can pick apart
-  each syllable. Click again to go back to normal speed — it's a strict
-  toggle per word/phrase, not a timer.
+  after the first play, and it speaks at a separately configurable slow rate
+  so you can pick apart each syllable. Click again to go back to normal
+  speed — it's a strict toggle per word/phrase, not a timer.
 - **Language switcher in the status bar.** A small badge (e.g. `🇸🇪 SV`) shows
   the language currently active for the open note. Click it — or run
   **Pronounce: Switch language** from the command palette — for an instant
@@ -68,9 +68,11 @@ Linux, iOS and Android.
   bottom and labeled `[Novelty]`. Download higher-quality voices from
   *System Settings → Accessibility → Spoken Content* (VoiceOver on
   macOS 15+) to get more/better options here.
-- **Speech rate** — 0.3x–1.1x (defaults to 0.85x, slightly slower to make
-  foreign sounds easier to catch). Repeat-clicking a word always speaks it
-  at half this rate, floored at 0.25x.
+- **Normal speech rate** — 0.5x–1.1x (defaults to 0.85x), used on the first
+  click.
+- **Slow speech rate** — 0.2x–0.8x (defaults to 0.4x), used on repeat clicks
+  on the same word (the Google Translate-style slow-motion toggle). Both are
+  independent sliders, so you can tune how slow "slow" actually is.
 - **Pitch** — 0.8x–1.2x.
 - **Show in context menu** — toggle the right-click *Listen to pronunciation*
   entry.
