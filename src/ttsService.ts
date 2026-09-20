@@ -35,8 +35,6 @@ const NOVELTY_VOICE_NAMES = new Set(
 	].map((name) => name.toLowerCase())
 );
 
-const PREMIUM_VOICE_HINTS = ["enhanced", "premium", "siri"];
-
 const KNOWN_NATURAL_VOICE_NAMES = new Set(
 	[
 		"Samantha",
@@ -72,8 +70,15 @@ export function isNoveltyVoice(voice: SpeechSynthesisVoice): boolean {
  * what a user actually wants to hear:
  * 1. The OS's own default voice for that language.
  * 2. An exact language/region match over a same-base-language partial match.
- * 3. Modern/"enhanced" voices, or well-known natural-sounding voice names.
+ * 3. Apple's Premium/Enhanced voice tiers (never exposes "Siri" through this
+ *    API, so that hint is pointless), or well-known natural-sounding names.
+ * 4. A slight penalty for Apple's low-fidelity "Compact" tier.
  * Novelty voices are always penalized so they never win automatically.
+ *
+ * Apple encodes voice quality in both the display `name` (localized — French
+ * macOS shows "Améliorée" instead of "Enhanced") and the `voiceURI` (e.g.
+ * "com.apple.voice.premium.sv-SE.Alva" / "...enhanced..." / "...compact..."),
+ * so both are inspected.
  */
 export function voiceQualityScore(voice: SpeechSynthesisVoice, lang: string): number {
 	let score = 0;
@@ -81,7 +86,17 @@ export function voiceQualityScore(voice: SpeechSynthesisVoice, lang: string): nu
 	if (voice.lang.toLowerCase() === lang.toLowerCase()) score += 10_000;
 
 	const name = voice.name.trim().toLowerCase();
-	if (PREMIUM_VOICE_HINTS.some((hint) => name.includes(hint))) score += 100;
+	const uri = (voice.voiceURI ?? "").toLowerCase();
+
+	if (name.includes("premium") || uri.includes("premium")) score += 300;
+	if (
+		name.includes("enhanced") ||
+		name.includes("améliorée") ||
+		name.includes("amelioree") ||
+		uri.includes("enhanced")
+	)
+		score += 200;
+	if (uri.includes(".compact.")) score -= 50;
 	if (KNOWN_NATURAL_VOICE_NAMES.has(name)) score += 50;
 	if (isNoveltyVoice(voice)) score -= 1_000_000_000;
 

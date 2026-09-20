@@ -60,7 +60,7 @@ export interface PronounceSettings {
 export const DEFAULT_SETTINGS: PronounceSettings = {
 	triggerChar: "~",
 	defaultLanguage: "en-US",
-	rate: 0.9,
+	rate: 0.85,
 	pitch: 1.0,
 	showInContextMenu: true,
 	voicesByLanguage: {},
@@ -102,11 +102,21 @@ export class PronounceSettingTab extends PluginSettingTab {
 			.setName("Voice")
 			.setDesc("Loading available voices for this language…");
 		this.plugin.tts.getVoicesForLang(this.plugin.settings.defaultLanguage).then((voices) => {
-			voiceSetting.setDesc(
+			const baseDesc =
 				voices.length > 0
 					? "System voice used to read the default language above."
-					: "No system voice found for this language on this device yet. It may need to be downloaded in your OS's accessibility settings, or the system default will be used."
+					: "No system voice found for this language on this device yet. It may need to be downloaded in your OS's accessibility settings, or the system default will be used.";
+
+			const descFrag = document.createDocumentFragment();
+			descFrag.appendChild(document.createTextNode(baseDesc));
+			descFrag.appendChild(document.createElement("br"));
+			descFrag.appendChild(
+				document.createTextNode(
+					"Tip: for natural HD voices (e.g. Alva Enhanced for Swedish), download them from System Settings → Accessibility → Spoken Content (VoiceOver on macOS 15+)."
+				)
 			);
+			voiceSetting.setDesc(descFrag);
+
 			voiceSetting.addDropdown((dropdown) => {
 				dropdown.addOption("", "System default");
 				const lang = this.plugin.settings.defaultLanguage;
@@ -134,7 +144,7 @@ export class PronounceSettingTab extends PluginSettingTab {
 			)
 			.addSlider((slider) =>
 				slider
-					.setLimits(0.2, 1.5, 0.05)
+					.setLimits(0.3, 1.1, 0.05)
 					.setValue(this.plugin.settings.rate)
 					.setDynamicTooltip()
 					.onChange(async (value) => {

@@ -148,7 +148,7 @@ export default class PronouncePlugin extends Plugin {
 		this.lastSpokenAt = now;
 		this.lastSpokenWasSlow = useSlowRate;
 
-		return useSlowRate ? Math.max(0.2, this.settings.rate * 0.5) : this.settings.rate;
+		return useSlowRate ? Math.min(0.35, this.settings.rate * 0.5) : this.settings.rate;
 	}
 
 	openLanguageMenu(evt?: MouseEvent): void {
