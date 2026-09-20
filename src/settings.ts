@@ -82,7 +82,7 @@ export class PronounceSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
-		containerEl.createEl("h3", { text: "Language" });
+		new Setting(containerEl).setName("Language").setHeading();
 
 		new Setting(containerEl)
 			.setName("Default language")
@@ -139,7 +139,7 @@ export class PronounceSettingTab extends PluginSettingTab {
 			});
 		});
 
-		containerEl.createEl("h3", { text: "Voice tuning" });
+		new Setting(containerEl).setName("Voice tuning").setHeading();
 
 		new Setting(containerEl)
 			.setName("Normal speech rate")
@@ -183,7 +183,7 @@ export class PronounceSettingTab extends PluginSettingTab {
 					})
 			);
 
-		containerEl.createEl("h3", { text: "Behavior" });
+		new Setting(containerEl).setName("Behavior").setHeading();
 
 		new Setting(containerEl)
 			.setName("Show in context menu")

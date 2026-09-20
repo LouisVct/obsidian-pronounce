@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-pronounce",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "Instantly hear the pronunciation of any word or phrase in any language, with an inline speaker button — built for language learners.",
 	"main": "main.js",
 	"scripts": {
