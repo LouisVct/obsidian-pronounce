@@ -110,6 +110,7 @@ export function voiceQualityScore(voice: SpeechSynthesisVoice, lang: string): nu
  */
 export class TtsService {
 	private voicesPromise: Promise<SpeechSynthesisVoice[]> | null = null;
+	private currentRequestId = 0;
 
 	isSupported(): boolean {
 		return typeof window !== "undefined" && "speechSynthesis" in window;
@@ -175,6 +176,12 @@ export class TtsService {
 	 * Speaks `text`. Must be called synchronously from within a user gesture
 	 * handler (click/tap) on iOS/Android, otherwise the browser silently
 	 * blocks playback.
+	 *
+	 * `pickVoice` awaits voice loading, so rapid repeated clicks can have
+	 * several `speak()` calls in flight at once; without a request id an
+	 * earlier call's voice lookup could resolve after a later one and cancel
+	 * the sound that was about to play. Each call tags itself with an id and
+	 * bails if a newer call has since started.
 	 */
 	async speak(text: string, options: SpeakOptions): Promise<void> {
 		if (!this.isSupported()) {
@@ -184,16 +191,19 @@ export class TtsService {
 		const trimmed = text.trim();
 		if (!trimmed) return;
 
+		const requestId = ++this.currentRequestId;
+		const voice = await this.pickVoice(options.lang, options.voiceURI);
+
+		// A newer speak() call superseded this one while we were awaiting.
+		if (requestId !== this.currentRequestId) return;
+
 		const synth = window.speechSynthesis;
-		// Cancel anything in-flight so rapid clicks don't queue up utterances.
 		synth.cancel();
 
 		const utterance = new SpeechSynthesisUtterance(trimmed);
 		utterance.lang = options.lang;
 		utterance.rate = options.rate;
 		utterance.pitch = options.pitch;
-
-		const voice = await this.pickVoice(options.lang, options.voiceURI);
 		if (voice) utterance.voice = voice;
 
 		synth.speak(utterance);

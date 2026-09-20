@@ -8,8 +8,11 @@ interface PronounceOptions {
 	sourcePath?: string;
 }
 
-/** Repeat-click window: a 2nd click on the same word within this delay speaks it slowly. */
-const REPEAT_CLICK_WINDOW_MS = 3000;
+interface LanguageState {
+	code: string;
+	/** True when nothing forced this language: no session override, no frontmatter `lang`. */
+	isAuto: boolean;
+}
 
 export default class PronouncePlugin extends Plugin {
 	settings: PronounceSettings;
@@ -19,10 +22,9 @@ export default class PronouncePlugin extends Plugin {
 	private sessionLanguageByFile: Map<string, string> = new Map();
 	private statusBarEl: HTMLElement;
 
-	/** Google Translate-style repeat-click: 2nd click on the same word soon after speaks it slowly. */
+	/** Google Translate-style toggle: clicking the same word again always flips Normal <-> Slow. */
 	private lastSpokenText: string | null = null;
-	private lastSpokenAt = 0;
-	private lastSpokenWasSlow = false;
+	private isSlowToggle = false;
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
@@ -91,8 +93,31 @@ export default class PronouncePlugin extends Plugin {
 	}
 
 	/**
+	 * Priorities 2-4 of the language cascade: session override, then note
+	 * frontmatter, then the plugin default. `isAuto` is true only when
+	 * neither of the first two applied, i.e. the default is what's active.
+	 */
+	private getLanguageState(sourcePath: string | undefined): LanguageState {
+		if (sourcePath) {
+			const sessionLang = this.sessionLanguageByFile.get(sourcePath);
+			if (sessionLang) return { code: sessionLang, isAuto: false };
+
+			const file = this.app.vault.getAbstractFileByPath(sourcePath);
+			if (file instanceof TFile) {
+				const frontmatterLang = this.app.metadataCache.getFileCache(file)?.frontmatter?.lang;
+				if (typeof frontmatterLang === "string") {
+					const fromFrontmatter = findLanguage(frontmatterLang);
+					if (fromFrontmatter) return { code: fromFrontmatter.code, isAuto: false };
+				}
+			}
+		}
+
+		return { code: this.settings.defaultLanguage, isAuto: true };
+	}
+
+	/**
 	 * Strict priority cascade:
-	 * 1. Language forced inline on the word (word::en)
+	 * 1. Language forced inline on the word (~word:en~)
 	 * 2. Manual pick from the status bar / command palette, for this note this session
 	 * 3. `lang` frontmatter of the open note
 	 * 4. Plugin default language
@@ -102,22 +127,7 @@ export default class PronouncePlugin extends Plugin {
 			const forced = findLanguage(forcedLang);
 			if (forced) return forced.code;
 		}
-
-		if (sourcePath) {
-			const sessionLang = this.sessionLanguageByFile.get(sourcePath);
-			if (sessionLang) return sessionLang;
-
-			const file = this.app.vault.getAbstractFileByPath(sourcePath);
-			if (file instanceof TFile) {
-				const frontmatterLang = this.app.metadataCache.getFileCache(file)?.frontmatter?.lang;
-				if (typeof frontmatterLang === "string") {
-					const fromFrontmatter = findLanguage(frontmatterLang);
-					if (fromFrontmatter) return fromFrontmatter.code;
-				}
-			}
-		}
-
-		return this.settings.defaultLanguage;
+		return this.getLanguageState(sourcePath).code;
 	}
 
 	async pronounce(text: string, options: PronounceOptions = {}): Promise<void> {
@@ -133,27 +143,35 @@ export default class PronouncePlugin extends Plugin {
 	}
 
 	/**
-	 * Google Translate-style repeat-click: the first click on a word speaks it
-	 * at the configured rate; a 2nd click on that same word within
-	 * REPEAT_CLICK_WINDOW_MS speaks it slowly; the click after that (or one
-	 * arriving once the window has lapsed) starts the cycle over at normal
-	 * speed.
+	 * Google Translate-style toggle: the same word spoken twice in a row
+	 * flips between normal and slow speed on every click. Speaking a
+	 * different word always resets the cycle back to normal.
 	 */
 	private nextPronounceRate(text: string): number {
-		const now = Date.now();
-		const isRepeat = this.lastSpokenText === text && now - this.lastSpokenAt <= REPEAT_CLICK_WINDOW_MS;
-		const useSlowRate = isRepeat && !this.lastSpokenWasSlow;
+		if (this.lastSpokenText === text) {
+			this.isSlowToggle = !this.isSlowToggle;
+		} else {
+			this.lastSpokenText = text;
+			this.isSlowToggle = false;
+		}
 
-		this.lastSpokenText = text;
-		this.lastSpokenAt = now;
-		this.lastSpokenWasSlow = useSlowRate;
-
-		return useSlowRate ? Math.min(0.35, this.settings.rate * 0.5) : this.settings.rate;
+		return this.isSlowToggle ? Math.max(0.25, this.settings.rate * 0.5) : this.settings.rate;
 	}
 
 	openLanguageMenu(evt?: MouseEvent): void {
 		const menu = new Menu();
 		const activeFile = this.app.workspace.getActiveFile();
+
+		menu.addItem((item) =>
+			item.setTitle("🏳️ Auto (note frontmatter / default)").onClick(() => {
+				if (activeFile) {
+					this.sessionLanguageByFile.delete(activeFile.path);
+					this.updateStatusBar();
+				}
+				new Notice("Pronounce: reset to auto (note frontmatter or default).");
+			})
+		);
+		menu.addSeparator();
 
 		for (const language of LANGUAGES) {
 			menu.addItem((item) =>
@@ -177,10 +195,19 @@ export default class PronouncePlugin extends Plugin {
 
 	updateStatusBar(): void {
 		const activeFile = this.app.workspace.getActiveFile();
-		const code = this.resolveLanguage(activeFile?.path);
+		const { code, isAuto } = this.getLanguageState(activeFile?.path);
 		const language = findLanguage(code);
-		const shortCode = code.split("-")[0].toUpperCase();
 
+		if (isAuto) {
+			this.statusBarEl.setText("🏳️ Auto");
+			this.statusBarEl.setAttr(
+				"aria-label",
+				`Pronounce language: Auto — currently "${language?.label ?? code}" (plugin default). Click to override.`
+			);
+			return;
+		}
+
+		const shortCode = code.split("-")[0].toUpperCase();
 		this.statusBarEl.setText(language ? `${language.flag} ${shortCode}` : shortCode);
 		this.statusBarEl.setAttr("aria-label", `Pronounce language: ${language?.label ?? code} (click to change)`);
 	}

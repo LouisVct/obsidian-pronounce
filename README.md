@@ -29,10 +29,18 @@ Linux, iOS and Android.
   - Run the **Pronounce selected text** command from the command palette
     (assign your own hotkey, e.g. `Cmd/Ctrl + Shift + S`, in
     Settings → Hotkeys).
+- **Slow down on repeat, Google Translate-style.** Click the same `🔊` button
+  (or repeat the **Pronounce selected text** command on the same text) right
+  after the first play, and it speaks at half speed so you can pick apart
+  each syllable. Click again to go back to normal speed — it's a strict
+  toggle per word/phrase, not a timer.
 - **Language switcher in the status bar.** A small badge (e.g. `🇸🇪 SV`) shows
   the language currently active for the open note. Click it — or run
   **Pronounce: Switch language** from the command palette — for an instant
-  picker.
+  picker. When nothing has been forced (no manual pick, no frontmatter
+  `lang`), the badge reads **`🏳️ Auto`** instead. Picking **🏳️ Auto** at the
+  top of that menu clears any manual override for the note, handing control
+  back to its frontmatter or the plugin default.
 - **Strict, predictable language cascade.** No guessing which language will
   be used:
   1. Language forced inline on the word (`~word:en~`).
@@ -54,9 +62,15 @@ Linux, iOS and Android.
 
 - **Default language** — used when nothing else in the cascade applies.
 - **Voice** — pick a specific system voice for the default language (e.g.
-  *Alva* or *Klara* on macOS for Swedish).
-- **Speech rate** — 0.5x–1.5x (defaults to 0.9x, slightly slower to make
-  foreign sounds easier to catch).
+  *Alva Enhanced* on macOS for Swedish). Voices are ranked automatically so
+  Apple's Premium/Enhanced tiers and the OS's own default voice are offered
+  first, and legacy novelty voices (Albert, Zarvox, ...) are pushed to the
+  bottom and labeled `[Novelty]`. Download higher-quality voices from
+  *System Settings → Accessibility → Spoken Content* (VoiceOver on
+  macOS 15+) to get more/better options here.
+- **Speech rate** — 0.3x–1.1x (defaults to 0.85x, slightly slower to make
+  foreign sounds easier to catch). Repeat-clicking a word always speaks it
+  at half this rate, floored at 0.25x.
 - **Pitch** — 0.8x–1.2x.
 - **Show in context menu** — toggle the right-click *Listen to pronunciation*
   entry.

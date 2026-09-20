@@ -112,7 +112,7 @@ export class PronounceSettingTab extends PluginSettingTab {
 			descFrag.appendChild(document.createElement("br"));
 			descFrag.appendChild(
 				document.createTextNode(
-					"Tip: for natural HD voices (e.g. Alva Enhanced for Swedish), download them from System Settings → Accessibility → Spoken Content (VoiceOver on macOS 15+)."
+					"Tip: for ultra-natural HD voices (e.g. Alva Enhanced for Swedish, Samantha for English), download them from System Settings → Accessibility → Spoken Content (VoiceOver on macOS 15+)."
 				)
 			);
 			voiceSetting.setDesc(descFrag);
