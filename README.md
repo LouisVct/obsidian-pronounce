@@ -11,26 +11,54 @@ whole notes aloud for accessibility, and most rely on desktop-only binaries
 it's a tiny, per-word `🔊` button that works identically on macOS, Windows,
 Linux, iOS and Android.
 
+> **Note on system voices.** Pronounce runs 100% locally and offline to
+> protect your privacy — it relies entirely on your device's own speech
+> engine, it never sends text anywhere. To get the most natural-sounding
+> voices (e.g. *Alva Enhanced* for Swedish, *Samantha* for English), make
+> sure the voice for your target language is downloaded on your device:
+> - **macOS** — System Settings → Accessibility → Spoken Content → System
+>   voice (or the VoiceOver Utility on macOS 15+).
+> - **iOS (iPhone/iPad)** — Settings → Accessibility → Spoken Content →
+>   Voices.
+> - **Windows** — Settings → Time & Language → Speech.
+> - **Android** — Settings → Accessibility → Text-to-speech output.
+
 ## Features
 
-- **Inline trigger, no emoji required.** Type a word followed by `::` and it
-  turns into a `🔊` button, in both Reading view and Live Preview.
-  - `mot::` → speaker button using the note's current language.
-  - `bonjour::fr` → forces French for that one word, regardless of context.
-  - The trigger sequence (`::` by default) is configurable in Settings, in
-    case it conflicts with another plugin (e.g. Dataview inline fields).
+- **Inline trigger, no emoji required.** Wrap a word in `~` and it turns into
+  a `🔊` button, in both Reading view and Live Preview.
+  - `~mot~` → speaker button using the note's current language.
+  - `~bonjour:fr~` (or `~bonjour|fr~`) → forces French for that one word,
+    regardless of context. Both the short code (`sv`) and the full BCP-47
+    code (`sv-SE`) work — `~sked:sv~` and `~sked:sv-SE~` both call the
+    Swedish voice.
+  - Native Markdown `~~strikethrough~~` is never affected — the parser
+    ignores a doubled-up delimiter.
+  - The delimiter (`~` by default) is a single configurable character in
+    Settings, in case it conflicts with another plugin.
 - **Quick listen on selection.** Highlight any word or phrase, then:
   - Right-click → *Listen to pronunciation*, or
   - Run the **Pronounce selected text** command from the command palette
     (assign your own hotkey, e.g. `Cmd/Ctrl + Shift + S`, in
     Settings → Hotkeys).
+- **Slow down on repeat, Google Translate-style.** Say the same word or
+  phrase again right after the first play — whether from the same `🔊`
+  button, a different button for that same text elsewhere in the note, or
+  the **Pronounce selected text** command — and it speaks at a separately
+  configurable slow rate so you can pick apart each syllable. Say it again
+  to go back to normal speed. It's a strict toggle keyed on the text itself
+  (not a timer, and not tied to a specific button), so repeating the exact
+  same word/phrase anywhere always alternates Normal → Slow → Normal.
 - **Language switcher in the status bar.** A small badge (e.g. `🇸🇪 SV`) shows
   the language currently active for the open note. Click it — or run
   **Pronounce: Switch language** from the command palette — for an instant
-  picker.
+  picker. When nothing has been forced (no manual pick, no frontmatter
+  `lang`), the badge reads **`🏳️ Auto`** instead. Picking **🏳️ Auto** at the
+  top of that menu clears any manual override for the note, handing control
+  back to its frontmatter or the plugin default.
 - **Strict, predictable language cascade.** No guessing which language will
   be used:
-  1. Language forced inline on the word (`word::en`).
+  1. Language forced inline on the word (`~word:en~`).
   2. Manual pick from the status bar / command palette (active for that note,
      for the rest of the session).
   3. The note's frontmatter:
@@ -49,13 +77,21 @@ Linux, iOS and Android.
 
 - **Default language** — used when nothing else in the cascade applies.
 - **Voice** — pick a specific system voice for the default language (e.g.
-  *Alva* or *Klara* on macOS for Swedish).
-- **Speech rate** — 0.5x–1.5x (defaults to 0.9x, slightly slower to make
-  foreign sounds easier to catch).
+  *Alva Enhanced* on macOS for Swedish). Voices are ranked automatically so
+  Apple's Premium/Enhanced tiers and the OS's own default voice are offered
+  first, and legacy novelty voices (Albert, Zarvox, ...) are pushed to the
+  bottom and labeled `[Novelty]`. Download higher-quality voices from
+  *System Settings → Accessibility → Spoken Content* (VoiceOver on
+  macOS 15+) to get more/better options here.
+- **Normal speech rate** — 0.5x–1.1x (defaults to 0.85x), used on the first
+  click.
+- **Slow speech rate** — 0.2x–0.8x (defaults to 0.4x), used on repeat clicks
+  on the same word (the Google Translate-style slow-motion toggle). Both are
+  independent sliders, so you can tune how slow "slow" actually is.
 - **Pitch** — 0.8x–1.2x.
 - **Show in context menu** — toggle the right-click *Listen to pronunciation*
   entry.
-- **Inline trigger** — the sequence typed after a word (default `::`).
+- **Inline delimiter** — the single character wrapping a word (default `~`).
 
 ## Installation
 
@@ -84,6 +120,9 @@ Add `LouisVct/obsidian-pronounce` in the
   a roadmap item.
 - Voice availability and quality depend entirely on what's installed on the
   underlying OS/browser; the plugin can't bundle or download voices itself.
+  If a language sounds robotic or doesn't speak at all, download that
+  language's voice in your OS's accessibility settings — see the note on
+  system voices above.
 
 ## Development
 
@@ -114,3 +153,7 @@ obsidian-pronounce/
 ## License
 
 [MIT](LICENSE)
+
+---
+
+Created by [Louis Vicat](https://louisvicat.com)

@@ -1,5 +1,6 @@
 import { App, Notice, PluginSettingTab, Setting } from "obsidian";
 import type PronouncePlugin from "./main";
+import { isNoveltyVoice, voiceQualityScore } from "./ttsService";
 
 export interface PronounceLanguage {
 	code: string; // BCP-47, e.g. "sv-SE"
@@ -45,11 +46,14 @@ export function findLanguage(code: string): PronounceLanguage | undefined {
 }
 
 export interface PronounceSettings {
-	/** Text typed right after a word to turn it into a speaker button, e.g. "::". */
-	triggerSequence: string;
+	/** Delimiter wrapping a word to turn it into a speaker button, e.g. "~" for ~word~. */
+	triggerChar: string;
 	/** BCP-47 code used when no other rule in the priority cascade applies. */
 	defaultLanguage: string;
+	/** Speed used on the first click. */
 	rate: number;
+	/** Speed used on repeat clicks on the same word (Google Translate slow-motion mode). */
+	slowRate: number;
 	pitch: number;
 	showInContextMenu: boolean;
 	/** Preferred voiceURI per language code, set from the settings tab. */
@@ -57,9 +61,10 @@ export interface PronounceSettings {
 }
 
 export const DEFAULT_SETTINGS: PronounceSettings = {
-	triggerSequence: "::",
+	triggerChar: "~",
 	defaultLanguage: "en-US",
-	rate: 0.9,
+	rate: 0.85,
+	slowRate: 0.4,
 	pitch: 1.0,
 	showInContextMenu: true,
 	voicesByLanguage: {},
@@ -101,15 +106,30 @@ export class PronounceSettingTab extends PluginSettingTab {
 			.setName("Voice")
 			.setDesc("Loading available voices for this language…");
 		this.plugin.tts.getVoicesForLang(this.plugin.settings.defaultLanguage).then((voices) => {
-			voiceSetting.setDesc(
+			const baseDesc =
 				voices.length > 0
 					? "System voice used to read the default language above."
-					: "No system voice found for this language on this device yet. It may need to be downloaded in your OS's accessibility settings, or the system default will be used."
+					: "No system voice found for this language on this device yet. It may need to be downloaded in your OS's accessibility settings, or the system default will be used.";
+
+			const descFrag = document.createDocumentFragment();
+			descFrag.appendChild(document.createTextNode(baseDesc));
+			descFrag.appendChild(document.createElement("br"));
+			descFrag.appendChild(
+				document.createTextNode(
+					"Tip: for ultra-natural HD voices (e.g. Alva Enhanced for Swedish, Samantha for English), download them from System Settings → Accessibility → Spoken Content (VoiceOver on macOS 15+)."
+				)
 			);
+			voiceSetting.setDesc(descFrag);
+
 			voiceSetting.addDropdown((dropdown) => {
 				dropdown.addOption("", "System default");
-				for (const voice of voices) {
-					dropdown.addOption(voice.voiceURI, `${voice.name} (${voice.lang})`);
+				const lang = this.plugin.settings.defaultLanguage;
+				const sorted = [...voices].sort((a, b) => voiceQualityScore(b, lang) - voiceQualityScore(a, lang));
+				for (const voice of sorted) {
+					const label = isNoveltyVoice(voice)
+						? `[Novelty] ${voice.name} (${voice.lang})`
+						: `${voice.name} (${voice.lang})`;
+					dropdown.addOption(voice.voiceURI, label);
 				}
 				dropdown.setValue(this.plugin.settings.voicesByLanguage[this.plugin.settings.defaultLanguage] ?? "");
 				dropdown.onChange(async (value) => {
@@ -122,15 +142,29 @@ export class PronounceSettingTab extends PluginSettingTab {
 		containerEl.createEl("h3", { text: "Voice tuning" });
 
 		new Setting(containerEl)
-			.setName("Speech rate")
-			.setDesc("How fast the voice speaks. Lower is slower, useful for hearing foreign sounds clearly.")
+			.setName("Normal speech rate")
+			.setDesc("Speed used on the first click.")
 			.addSlider((slider) =>
 				slider
-					.setLimits(0.5, 1.5, 0.05)
+					.setLimits(0.5, 1.1, 0.05)
 					.setValue(this.plugin.settings.rate)
 					.setDynamicTooltip()
 					.onChange(async (value) => {
 						this.plugin.settings.rate = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("Slow speech rate")
+			.setDesc("Speed used on repeated clicks on the same word (Google Translate slow-motion mode).")
+			.addSlider((slider) =>
+				slider
+					.setLimits(0.2, 0.8, 0.05)
+					.setValue(this.plugin.settings.slowRate)
+					.setDynamicTooltip()
+					.onChange(async (value) => {
+						this.plugin.settings.slowRate = value;
 						await this.plugin.saveSettings();
 					})
 			);
@@ -162,20 +196,22 @@ export class PronounceSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Inline trigger")
+			.setName("Inline delimiter")
 			.setDesc(
-				'Typed right after a word to turn it into a 🔊 button, e.g. "word::". Add a language code right after to force it for that word, e.g. "bonjour::fr". Change this if it conflicts with another plugin, such as Dataview\'s inline fields (also "::").'
+				'Wraps a word to turn it into a 🔊 button, e.g. "~word~". Add ":lang" or "|lang" right before the closing delimiter to force a language for that word, e.g. "~sked:sv~" or "~sked:sv-SE~" both call the Swedish voice. Change this single character if it conflicts with another plugin (the default "~" never collides with Dataview or Anki\'s "::" fields).'
 			)
 			.addText((text) =>
 				text
-					.setPlaceholder("::")
-					.setValue(this.plugin.settings.triggerSequence)
+					.setPlaceholder("~")
+					.setValue(this.plugin.settings.triggerChar)
 					.onChange(async (value) => {
-						if (!value.trim()) {
-							new Notice("Pronounce: the inline trigger cannot be empty.");
+						// Spread by code point, not UTF-16 code unit, so a single
+						// astral-plane character (many emoji) isn't rejected as "two".
+						if ([...value].length !== 1) {
+							new Notice("Pronounce: the inline delimiter must be exactly one character.");
 							return;
 						}
-						this.plugin.settings.triggerSequence = value;
+						this.plugin.settings.triggerChar = value;
 						await this.plugin.saveSettings();
 					})
 			);
