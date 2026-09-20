@@ -11,6 +11,18 @@ whole notes aloud for accessibility, and most rely on desktop-only binaries
 it's a tiny, per-word `🔊` button that works identically on macOS, Windows,
 Linux, iOS and Android.
 
+> **Note on system voices.** Pronounce runs 100% locally and offline to
+> protect your privacy — it relies entirely on your device's own speech
+> engine, it never sends text anywhere. To get the most natural-sounding
+> voices (e.g. *Alva Enhanced* for Swedish, *Samantha* for English), make
+> sure the voice for your target language is downloaded on your device:
+> - **macOS** — System Settings → Accessibility → Spoken Content → System
+>   voice (or the VoiceOver Utility on macOS 15+).
+> - **iOS (iPhone/iPad)** — Settings → Accessibility → Spoken Content →
+>   Voices.
+> - **Windows** — Settings → Time & Language → Speech.
+> - **Android** — Settings → Accessibility → Text-to-speech output.
+
 ## Features
 
 - **Inline trigger, no emoji required.** Wrap a word in `~` and it turns into
@@ -105,6 +117,9 @@ Add `LouisVct/obsidian-pronounce` in the
   a roadmap item.
 - Voice availability and quality depend entirely on what's installed on the
   underlying OS/browser; the plugin can't bundle or download voices itself.
+  If a language sounds robotic or doesn't speak at all, download that
+  language's voice in your OS's accessibility settings — see the note on
+  system voices above.
 
 ## Development
 
@@ -135,3 +150,7 @@ obsidian-pronounce/
 ## License
 
 [MIT](LICENSE)
+
+---
+
+Created by [Louis Vicat](https://louisvicat.com)
