@@ -123,6 +123,17 @@ Add `LouisVct/obsidian-pronounce` in the
   If a language sounds robotic or doesn't speak at all, download that
   language's voice in your OS's accessibility settings — see the note on
   system voices above.
+- **On iOS/iPadOS specifically, downloaded Enhanced/Premium voices are not
+  reachable at all.** This is a platform limitation, not a bug in this
+  plugin: WKWebView's implementation of the Web Speech API
+  (`window.speechSynthesis`) only exposes the Compact/pre-installed voice
+  tier, even when a higher-quality voice for that language has been
+  downloaded and selected in Settings → Accessibility → Spoken Content. This
+  has been reported by other developers hitting the same wall, and the only
+  way around it is native `AVSpeechSynthesizer` access, which isn't
+  available to a web-based Obsidian plugin. Desktop platforms (macOS,
+  Windows, Linux) aren't affected — Enhanced/Premium voices there are
+  correctly detected and preferred.
 
 ## Development
 
