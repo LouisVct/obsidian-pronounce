@@ -14,6 +14,10 @@ interface LanguageState {
 	isAuto: boolean;
 }
 
+function clamp(value: number, min: number, max: number): number {
+	return Math.min(max, Math.max(min, value));
+}
+
 export default class PronouncePlugin extends Plugin {
 	settings: PronounceSettings;
 	tts: TtsService = new TtsService();
@@ -86,6 +90,16 @@ export default class PronouncePlugin extends Plugin {
 
 	async loadSettings(): Promise<void> {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+
+		// Defend against stale values from an older settings shape (e.g. a rate
+		// saved back when the slider allowed up to 1.5, or a renamed field
+		// leaving triggerChar unset) rather than letting the UI silently clamp.
+		this.settings.rate = clamp(this.settings.rate, 0.5, 1.1);
+		this.settings.slowRate = clamp(this.settings.slowRate, 0.2, 0.8);
+		this.settings.pitch = clamp(this.settings.pitch, 0.8, 1.2);
+		if ([...this.settings.triggerChar].length !== 1) {
+			this.settings.triggerChar = DEFAULT_SETTINGS.triggerChar;
+		}
 	}
 
 	async saveSettings(): Promise<void> {

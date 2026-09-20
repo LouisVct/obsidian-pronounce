@@ -205,7 +205,9 @@ export class PronounceSettingTab extends PluginSettingTab {
 					.setPlaceholder("~")
 					.setValue(this.plugin.settings.triggerChar)
 					.onChange(async (value) => {
-						if (value.length !== 1) {
+						// Spread by code point, not UTF-16 code unit, so a single
+						// astral-plane character (many emoji) isn't rejected as "two".
+						if ([...value].length !== 1) {
 							new Notice("Pronounce: the inline delimiter must be exactly one character.");
 							return;
 						}

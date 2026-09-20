@@ -41,11 +41,14 @@ Linux, iOS and Android.
   - Run the **Pronounce selected text** command from the command palette
     (assign your own hotkey, e.g. `Cmd/Ctrl + Shift + S`, in
     Settings → Hotkeys).
-- **Slow down on repeat, Google Translate-style.** Click the same `🔊` button
-  (or repeat the **Pronounce selected text** command on the same text) right
-  after the first play, and it speaks at a separately configurable slow rate
-  so you can pick apart each syllable. Click again to go back to normal
-  speed — it's a strict toggle per word/phrase, not a timer.
+- **Slow down on repeat, Google Translate-style.** Say the same word or
+  phrase again right after the first play — whether from the same `🔊`
+  button, a different button for that same text elsewhere in the note, or
+  the **Pronounce selected text** command — and it speaks at a separately
+  configurable slow rate so you can pick apart each syllable. Say it again
+  to go back to normal speed. It's a strict toggle keyed on the text itself
+  (not a timer, and not tied to a specific button), so repeating the exact
+  same word/phrase anywhere always alternates Normal → Slow → Normal.
 - **Language switcher in the status bar.** A small badge (e.g. `🇸🇪 SV`) shows
   the language currently active for the open note. Click it — or run
   **Pronounce: Switch language** from the command palette — for an instant

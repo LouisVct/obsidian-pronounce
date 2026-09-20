@@ -68,8 +68,12 @@ export function isNoveltyVoice(voice: SpeechSynthesisVoice): boolean {
 /**
  * Ranks a voice for a target language, highest is best. Priority mirrors
  * what a user actually wants to hear:
- * 1. The OS's own default voice for that language.
- * 2. An exact language/region match over a same-base-language partial match.
+ * 1. An exact language/region match always outranks a same-base-language
+ *    partial match (e.g. a real en-GB voice beats an en-US voice offered
+ *    only because it shares the "en" base) — this tier dominates everything
+ *    below it, including "default", so a wrong-region default voice can
+ *    never outrank a true regional match.
+ * 2. Within that tier, the OS's own default voice for the language.
  * 3. Apple's Premium/Enhanced voice tiers (never exposes "Siri" through this
  *    API, so that hint is pointless), or well-known natural-sounding names.
  * 4. A slight penalty for Apple's low-fidelity "Compact" tier.
@@ -82,8 +86,8 @@ export function isNoveltyVoice(voice: SpeechSynthesisVoice): boolean {
  */
 export function voiceQualityScore(voice: SpeechSynthesisVoice, lang: string): number {
 	let score = 0;
-	if (voice.default) score += 1_000_000;
-	if (voice.lang.toLowerCase() === lang.toLowerCase()) score += 10_000;
+	if (voice.lang.toLowerCase() === lang.toLowerCase()) score += 1_000_000;
+	if (voice.default) score += 100_000;
 
 	const name = voice.name.trim().toLowerCase();
 	const uri = (voice.voiceURI ?? "").toLowerCase();
