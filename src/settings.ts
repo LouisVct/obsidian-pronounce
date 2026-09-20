@@ -45,8 +45,8 @@ export function findLanguage(code: string): PronounceLanguage | undefined {
 }
 
 export interface PronounceSettings {
-	/** Text typed right after a word to turn it into a speaker button, e.g. "::". */
-	triggerSequence: string;
+	/** Delimiter wrapping a word to turn it into a speaker button, e.g. "~" for ~word~. */
+	triggerChar: string;
 	/** BCP-47 code used when no other rule in the priority cascade applies. */
 	defaultLanguage: string;
 	rate: number;
@@ -57,7 +57,7 @@ export interface PronounceSettings {
 }
 
 export const DEFAULT_SETTINGS: PronounceSettings = {
-	triggerSequence: "::",
+	triggerChar: "~",
 	defaultLanguage: "en-US",
 	rate: 0.9,
 	pitch: 1.0,
@@ -162,20 +162,20 @@ export class PronounceSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Inline trigger")
+			.setName("Inline delimiter")
 			.setDesc(
-				'Typed right after a word to turn it into a 🔊 button, e.g. "word::". Add a language code right after to force it for that word, e.g. "bonjour::fr". Change this if it conflicts with another plugin, such as Dataview\'s inline fields (also "::").'
+				'Wraps a word to turn it into a 🔊 button, e.g. "~word~". Add ":lang" or "|lang" right before the closing delimiter to force a language for that word, e.g. "~sked:sv~" or "~sked:sv-SE~" both call the Swedish voice. Change this single character if it conflicts with another plugin (the default "~" never collides with Dataview or Anki\'s "::" fields).'
 			)
 			.addText((text) =>
 				text
-					.setPlaceholder("::")
-					.setValue(this.plugin.settings.triggerSequence)
+					.setPlaceholder("~")
+					.setValue(this.plugin.settings.triggerChar)
 					.onChange(async (value) => {
-						if (!value.trim()) {
-							new Notice("Pronounce: the inline trigger cannot be empty.");
+						if (value.length !== 1) {
+							new Notice("Pronounce: the inline delimiter must be exactly one character.");
 							return;
 						}
-						this.plugin.settings.triggerSequence = value;
+						this.plugin.settings.triggerChar = value;
 						await this.plugin.saveSettings();
 					})
 			);

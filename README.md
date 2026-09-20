@@ -13,12 +13,17 @@ Linux, iOS and Android.
 
 ## Features
 
-- **Inline trigger, no emoji required.** Type a word followed by `::` and it
-  turns into a `🔊` button, in both Reading view and Live Preview.
-  - `mot::` → speaker button using the note's current language.
-  - `bonjour::fr` → forces French for that one word, regardless of context.
-  - The trigger sequence (`::` by default) is configurable in Settings, in
-    case it conflicts with another plugin (e.g. Dataview inline fields).
+- **Inline trigger, no emoji required.** Wrap a word in `~` and it turns into
+  a `🔊` button, in both Reading view and Live Preview.
+  - `~mot~` → speaker button using the note's current language.
+  - `~bonjour:fr~` (or `~bonjour|fr~`) → forces French for that one word,
+    regardless of context. Both the short code (`sv`) and the full BCP-47
+    code (`sv-SE`) work — `~sked:sv~` and `~sked:sv-SE~` both call the
+    Swedish voice.
+  - Native Markdown `~~strikethrough~~` is never affected — the parser
+    ignores a doubled-up delimiter.
+  - The delimiter (`~` by default) is a single configurable character in
+    Settings, in case it conflicts with another plugin.
 - **Quick listen on selection.** Highlight any word or phrase, then:
   - Right-click → *Listen to pronunciation*, or
   - Run the **Pronounce selected text** command from the command palette
@@ -30,7 +35,7 @@ Linux, iOS and Android.
   picker.
 - **Strict, predictable language cascade.** No guessing which language will
   be used:
-  1. Language forced inline on the word (`word::en`).
+  1. Language forced inline on the word (`~word:en~`).
   2. Manual pick from the status bar / command palette (active for that note,
      for the rest of the session).
   3. The note's frontmatter:
@@ -55,7 +60,7 @@ Linux, iOS and Android.
 - **Pitch** — 0.8x–1.2x.
 - **Show in context menu** — toggle the right-click *Listen to pronunciation*
   entry.
-- **Inline trigger** — the sequence typed after a word (default `::`).
+- **Inline delimiter** — the single character wrapping a word (default `~`).
 
 ## Installation
 
