@@ -8,8 +8,11 @@ emoji-hunting or copy-pasting.
 Existing TTS plugins (*Apple TTS*, *Text to Speech*, ...) are built to read
 whole notes aloud for accessibility, and most rely on desktop-only binaries
 (e.g. macOS's `say`) that don't work on mobile. Pronounce does the opposite:
-it's a tiny, per-word `🔊` button that works identically on macOS, Windows,
-Linux, iOS and Android.
+it's a tiny, per-word `🔊` button built entirely on the standard
+`window.speechSynthesis` API, no native binaries. In practice that means it
+works great on **macOS, Windows, Linux, and iOS/iPadOS** (see the voice
+quality note below for iOS); **Android is currently unsupported** — see
+[Known limitations](#known-limitations).
 
 > **Note on system voices.** Pronounce runs 100% locally and offline to
 > protect your privacy — it relies entirely on your device's own speech
@@ -19,9 +22,12 @@ Linux, iOS and Android.
 > - **macOS** — System Settings → Accessibility → Spoken Content → System
 >   voice (or the VoiceOver Utility on macOS 15+).
 > - **iOS (iPhone/iPad)** — Settings → Accessibility → Spoken Content →
->   Voices.
+>   Voices. Note: only the base/Compact tier is actually usable here — see
+>   [Known limitations](#known-limitations).
 > - **Windows** — Settings → Time & Language → Speech.
-> - **Android** — Settings → Accessibility → Text-to-speech output.
+>
+> Android isn't listed above because no voice setup will make this work
+> there yet — see [Known limitations](#known-limitations).
 
 ## Features
 
@@ -115,14 +121,34 @@ Add `LouisVct/obsidian-pronounce` in the
 
 ## Known limitations
 
+- **Android doesn't work at all, and this can't be fixed from a plugin.**
+  `window.speechSynthesis` simply doesn't exist in the Android WebView that
+  Obsidian's mobile app is built on (Obsidian uses Capacitor, which embeds
+  Android's system WebView, not Chrome) — it's a Chromium bug open since May
+  2015 with no fix in sight, confirmed on
+  [Obsidian's own forum](https://forum.obsidian.md/t/text-to-speech-broken-on-android-mobiles-tablets/113984):
+  a moderator explicitly declined it as a third-party/upstream issue outside
+  Obsidian's control. Every Web Speech API-based plugin hits this, not just
+  Pronounce. `isDesktopOnly` is still `false` because the plugin's own code
+  has no desktop-only dependency and fails gracefully (a console warning,
+  not a crash) — it's the platform, not the plugin, that's the gap.
+- **On iOS/iPadOS, downloaded Enhanced/Premium voices are never reachable —
+  only the Compact/pre-installed tier is.** This is a platform limitation,
+  not a bug in this plugin: WKWebView's implementation of the Web Speech API
+  only exposes Compact voices, even when a higher-quality voice for that
+  language has been downloaded and selected in Settings → Accessibility →
+  Spoken Content. The only way around it is native `AVSpeechSynthesizer`
+  access, unavailable to a web-based Obsidian plugin. Desktop platforms
+  (macOS, Windows, Linux) aren't affected — Enhanced/Premium/Natural voices
+  there are correctly detected and preferred.
 - The mobile-toolbar quick-action button (above the keyboard) isn't wired up
   yet — on mobile, use text selection + the context menu instead. Tracked as
   a roadmap item.
-- Voice availability and quality depend entirely on what's installed on the
-  underlying OS/browser; the plugin can't bundle or download voices itself.
-  If a language sounds robotic or doesn't speak at all, download that
-  language's voice in your OS's accessibility settings — see the note on
-  system voices above.
+- Voice availability and quality otherwise depend entirely on what's
+  installed on the underlying OS/browser; the plugin can't bundle or
+  download voices itself. If a language sounds robotic or doesn't speak at
+  all, download that language's voice in your OS's accessibility settings —
+  see the note on system voices above.
 
 ## Development
 
