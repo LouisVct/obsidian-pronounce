@@ -3,7 +3,7 @@
 	"name": "Pronounce",
 	"version": "1.0.2",
 	"minAppVersion": "1.4.16",
-	"description": "Add a discreet speaker button next to any word or phrase to hear its exact pronunciation instantly, in any language — built for language learners. 100% local, works offline, on desktop and mobile.",
+	"description": "Add a discreet speaker button next to any word or phrase to hear its exact pronunciation instantly, in any language — built for language learners. 100% local and offline. Works on desktop and iOS; Android isn't supported yet (platform limitation).",
 	"author": "Louis Vicat",
 	"authorUrl": "https://louisvicat.com",
 	"fundingUrl": "https://ko-fi.com/louisvicat",
