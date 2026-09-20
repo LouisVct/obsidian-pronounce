@@ -71,12 +71,17 @@ export function isNoveltyVoice(voice: SpeechSynthesisVoice): boolean {
  * 1. An exact language/region match always outranks a same-base-language
  *    partial match (e.g. a real en-GB voice beats an en-US voice offered
  *    only because it shares the "en" base) — this tier dominates everything
- *    below it, including "default", so a wrong-region default voice can
- *    never outrank a true regional match.
- * 2. Within that tier, the OS's own default voice for the language.
- * 3. Apple's Premium/Enhanced voice tiers (never exposes "Siri" through this
- *    API, so that hint is pointless), or well-known natural-sounding names.
- * 4. A slight penalty for Apple's low-fidelity "Compact" tier.
+ *    below it, so a wrong-region voice can never outrank a true regional
+ *    match no matter its quality tier or default status.
+ * 2. Within that tier, Apple's Premium/Enhanced voice tiers (never exposes
+ *    "Siri" through this API, so that hint is pointless). Downloading a
+ *    higher-quality voice does NOT make the OS mark it "default" — that's a
+ *    separate, manual setting most users never touch — so a deliberately
+ *    downloaded Premium voice must outrank a merely-default Compact one.
+ * 3. The OS's own default voice only breaks ties among voices of otherwise
+ *    equal quality (e.g. no Premium/Enhanced voice is installed at all).
+ * 4. Well-known natural-sounding names, and a slight penalty for Apple's
+ *    low-fidelity "Compact" tier.
  * Novelty voices are always penalized so they never win automatically.
  *
  * Apple encodes voice quality in both the display `name` (localized — French
@@ -87,19 +92,19 @@ export function isNoveltyVoice(voice: SpeechSynthesisVoice): boolean {
 export function voiceQualityScore(voice: SpeechSynthesisVoice, lang: string): number {
 	let score = 0;
 	if (voice.lang.toLowerCase() === lang.toLowerCase()) score += 1_000_000;
-	if (voice.default) score += 100_000;
 
 	const name = voice.name.trim().toLowerCase();
 	const uri = (voice.voiceURI ?? "").toLowerCase();
 
-	if (name.includes("premium") || uri.includes("premium")) score += 300;
+	if (name.includes("premium") || uri.includes("premium")) score += 50_000;
 	if (
 		name.includes("enhanced") ||
 		name.includes("améliorée") ||
 		name.includes("amelioree") ||
 		uri.includes("enhanced")
 	)
-		score += 200;
+		score += 30_000;
+	if (voice.default) score += 10_000;
 	if (uri.includes(".compact.")) score -= 50;
 	if (KNOWN_NATURAL_VOICE_NAMES.has(name)) score += 50;
 	if (isNoveltyVoice(voice)) score -= 1_000_000_000;
