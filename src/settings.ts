@@ -1,4 +1,6 @@
 import { App, Notice, PluginSettingTab, Setting } from "obsidian";
+// createFragment is an Obsidian ambient global (declared via `declare global`
+// in obsidian.d.ts), not an export of the "obsidian" module.
 import type PronouncePlugin from "./main";
 import { isNoveltyVoice, voiceQualityScore } from "./ttsService";
 
@@ -105,39 +107,40 @@ export class PronounceSettingTab extends PluginSettingTab {
 		const voiceSetting = new Setting(containerEl)
 			.setName("Voice")
 			.setDesc("Loading available voices for this language…");
-		this.plugin.tts.getVoicesForLang(this.plugin.settings.defaultLanguage).then((voices) => {
-			const baseDesc =
-				voices.length > 0
-					? "System voice used to read the default language above."
-					: "No system voice found for this language on this device yet. It may need to be downloaded in your OS's accessibility settings, or the system default will be used.";
+		void this.plugin.tts
+			.getVoicesForLang(this.plugin.settings.defaultLanguage)
+			.then((voices) => {
+				const baseDesc =
+					voices.length > 0
+						? "System voice used to read the default language above."
+						: "No system voice found for this language on this device yet. It may need to be downloaded in your OS's accessibility settings, or the system default will be used.";
 
-			const descFrag = document.createDocumentFragment();
-			descFrag.appendChild(document.createTextNode(baseDesc));
-			descFrag.appendChild(document.createElement("br"));
-			descFrag.appendChild(
-				document.createTextNode(
+				const descFrag = createFragment();
+				descFrag.appendText(baseDesc);
+				descFrag.createEl("br");
+				descFrag.appendText(
 					"Tip: for ultra-natural HD voices (e.g. Alva Enhanced for Swedish, Samantha for English), download them from System Settings → Accessibility → Spoken Content (VoiceOver on macOS 15+)."
-				)
-			);
-			voiceSetting.setDesc(descFrag);
+				);
+				voiceSetting.setDesc(descFrag);
 
-			voiceSetting.addDropdown((dropdown) => {
-				dropdown.addOption("", "System default");
-				const lang = this.plugin.settings.defaultLanguage;
-				const sorted = [...voices].sort((a, b) => voiceQualityScore(b, lang) - voiceQualityScore(a, lang));
-				for (const voice of sorted) {
-					const label = isNoveltyVoice(voice)
-						? `[Novelty] ${voice.name} (${voice.lang})`
-						: `${voice.name} (${voice.lang})`;
-					dropdown.addOption(voice.voiceURI, label);
-				}
-				dropdown.setValue(this.plugin.settings.voicesByLanguage[this.plugin.settings.defaultLanguage] ?? "");
-				dropdown.onChange(async (value) => {
-					this.plugin.settings.voicesByLanguage[this.plugin.settings.defaultLanguage] = value;
-					await this.plugin.saveSettings();
+				voiceSetting.addDropdown((dropdown) => {
+					dropdown.addOption("", "System default");
+					const lang = this.plugin.settings.defaultLanguage;
+					const sorted = [...voices].sort((a, b) => voiceQualityScore(b, lang) - voiceQualityScore(a, lang));
+					for (const voice of sorted) {
+						const label = isNoveltyVoice(voice)
+							? `[Novelty] ${voice.name} (${voice.lang})`
+							: `${voice.name} (${voice.lang})`;
+						dropdown.addOption(voice.voiceURI, label);
+					}
+					dropdown.setValue(this.plugin.settings.voicesByLanguage[this.plugin.settings.defaultLanguage] ?? "");
+					dropdown.onChange(async (value) => {
+						this.plugin.settings.voicesByLanguage[this.plugin.settings.defaultLanguage] = value;
+						await this.plugin.saveSettings();
+					});
 				});
-			});
-		});
+			})
+			.catch(console.error);
 
 		new Setting(containerEl).setName("Voice tuning").setHeading();
 
@@ -148,7 +151,6 @@ export class PronounceSettingTab extends PluginSettingTab {
 				slider
 					.setLimits(0.5, 1.1, 0.05)
 					.setValue(this.plugin.settings.rate)
-					.setDynamicTooltip()
 					.onChange(async (value) => {
 						this.plugin.settings.rate = value;
 						await this.plugin.saveSettings();
@@ -162,7 +164,6 @@ export class PronounceSettingTab extends PluginSettingTab {
 				slider
 					.setLimits(0.2, 0.8, 0.05)
 					.setValue(this.plugin.settings.slowRate)
-					.setDynamicTooltip()
 					.onChange(async (value) => {
 						this.plugin.settings.slowRate = value;
 						await this.plugin.saveSettings();
@@ -176,7 +177,6 @@ export class PronounceSettingTab extends PluginSettingTab {
 				slider
 					.setLimits(0.8, 1.2, 0.05)
 					.setValue(this.plugin.settings.pitch)
-					.setDynamicTooltip()
 					.onChange(async (value) => {
 						this.plugin.settings.pitch = value;
 						await this.plugin.saveSettings();

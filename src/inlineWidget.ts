@@ -1,4 +1,6 @@
 import { editorLivePreviewField } from "obsidian";
+// createEl/createFragment/createSpan are Obsidian's ambient globals (declared
+// via `declare global` in obsidian.d.ts), not exports of the "obsidian" module.
 import { syntaxTree } from "@codemirror/language";
 import { RangeSetBuilder, EditorState } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, WidgetType } from "@codemirror/view";
@@ -57,11 +59,11 @@ export function createPronounceButton(
 	forcedLang: string | undefined,
 	sourcePath: string | undefined
 ): HTMLButtonElement {
-	const btn = document.createElement("button");
-	btn.addClass("pronounce-btn");
-	btn.setAttr("type", "button");
-	btn.setAttr("aria-label", `Pronounce "${word}"`);
-	btn.setText("🔊");
+	const btn = createEl("button", {
+		cls: "pronounce-btn",
+		text: "🔊",
+		attr: { type: "button", "aria-label": `Pronounce "${word}"` },
+	});
 	btn.addEventListener("mousedown", (evt) => evt.preventDefault());
 	btn.addEventListener("click", (evt) => {
 		evt.preventDefault();
@@ -96,15 +98,15 @@ export function registerReadingModeProcessor(plugin: PronouncePlugin): void {
 			const matches = findTriggerMatches(text, triggerChar);
 			if (matches.length === 0) continue;
 
-			const frag = document.createDocumentFragment();
+			const frag = createFragment();
 			let cursor = 0;
 			for (const match of matches) {
-				if (match.start > cursor) frag.appendChild(document.createTextNode(text.slice(cursor, match.start)));
-				frag.appendChild(document.createTextNode(match.word));
+				if (match.start > cursor) frag.appendText(text.slice(cursor, match.start));
+				frag.appendText(match.word);
 				frag.appendChild(createPronounceButton(plugin, match.word, match.lang, ctx.sourcePath));
 				cursor = match.end;
 			}
-			if (cursor < text.length) frag.appendChild(document.createTextNode(text.slice(cursor)));
+			if (cursor < text.length) frag.appendText(text.slice(cursor));
 			node.parentNode?.replaceChild(frag, node);
 		}
 	});
@@ -125,9 +127,8 @@ class PronounceWidget extends WidgetType {
 	}
 
 	toDOM(): HTMLElement {
-		const span = document.createElement("span");
-		span.addClass("pronounce-inline");
-		span.appendChild(document.createTextNode(this.word));
+		const span = createSpan({ cls: "pronounce-inline" });
+		span.appendText(this.word);
 		span.appendChild(createPronounceButton(this.plugin, this.word, this.lang, this.sourcePath));
 		return span;
 	}

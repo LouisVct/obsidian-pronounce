@@ -42,8 +42,8 @@ export default class PronouncePlugin extends Plugin {
 		this.registerEditorExtension(createPronounceViewPlugin(this));
 
 		this.addCommand({
-			id: "pronounce-selection",
-			name: "Pronounce selected text",
+			id: "selection",
+			name: "Listen to selection",
 			editorCallback: (editor: Editor) => {
 				const selection = editor.getSelection();
 				if (!selection.trim()) {
@@ -55,7 +55,7 @@ export default class PronouncePlugin extends Plugin {
 		});
 
 		this.addCommand({
-			id: "pronounce-switch-language",
+			id: "switch-language",
 			name: "Switch language",
 			callback: () => this.openLanguageMenu(),
 		});
@@ -89,7 +89,8 @@ export default class PronouncePlugin extends Plugin {
 	}
 
 	async loadSettings(): Promise<void> {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		const saved = (await this.loadData()) as Partial<PronounceSettings> | null;
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, saved);
 
 		// Defend against stale values from an older settings shape (e.g. a rate
 		// saved back when the slider allowed up to 1.5, or a renamed field
