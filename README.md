@@ -38,13 +38,13 @@ Linux, iOS and Android.
     Settings, in case it conflicts with another plugin.
 - **Quick listen on selection.** Highlight any word or phrase, then:
   - Right-click → *Listen to pronunciation*, or
-  - Run the **Pronounce selected text** command from the command palette
+  - Run the **Listen to selection** command from the command palette
     (assign your own hotkey, e.g. `Cmd/Ctrl + Shift + S`, in
     Settings → Hotkeys).
 - **Slow down on repeat, Google Translate-style.** Say the same word or
   phrase again right after the first play — whether from the same `🔊`
   button, a different button for that same text elsewhere in the note, or
-  the **Pronounce selected text** command — and it speaks at a separately
+  the **Listen to selection** command — and it speaks at a separately
   configurable slow rate so you can pick apart each syllable. Say it again
   to go back to normal speed. It's a strict toggle keyed on the text itself
   (not a timer, and not tied to a specific button), so repeating the exact
