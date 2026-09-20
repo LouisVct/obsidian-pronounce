@@ -1,0 +1,39 @@
+.pronounce-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: transparent;
+	border: none;
+	padding: 0 2px;
+	margin: 0 1px;
+	font-size: 0.85em;
+	line-height: 1;
+	color: var(--text-muted);
+	cursor: pointer;
+	border-radius: 4px;
+	vertical-align: middle;
+	transition: color 120ms ease, background-color 120ms ease, transform 80ms ease;
+}
+
+.pronounce-btn:hover,
+.pronounce-btn:focus-visible {
+	color: var(--interactive-accent);
+	background-color: var(--background-modifier-hover);
+	outline: none;
+}
+
+.pronounce-btn:active {
+	transform: scale(0.9);
+}
+
+.pronounce-status-bar {
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	user-select: none;
+}
+
+.pronounce-status-bar:hover {
+	color: var(--text-normal);
+}

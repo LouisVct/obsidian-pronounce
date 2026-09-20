@@ -1,0 +1,183 @@
+import { App, Notice, PluginSettingTab, Setting } from "obsidian";
+import type PronouncePlugin from "./main";
+
+export interface PronounceLanguage {
+	code: string; // BCP-47, e.g. "sv-SE"
+	label: string;
+	flag: string;
+}
+
+/** Curated list of common languages for the status bar / settings pickers. */
+export const LANGUAGES: PronounceLanguage[] = [
+	{ code: "en-US", label: "English (US)", flag: "🇺🇸" },
+	{ code: "en-GB", label: "English (UK)", flag: "🇬🇧" },
+	{ code: "fr-FR", label: "Français", flag: "🇫🇷" },
+	{ code: "sv-SE", label: "Svenska", flag: "🇸🇪" },
+	{ code: "es-ES", label: "Español", flag: "🇪🇸" },
+	{ code: "de-DE", label: "Deutsch", flag: "🇩🇪" },
+	{ code: "it-IT", label: "Italiano", flag: "🇮🇹" },
+	{ code: "pt-PT", label: "Português", flag: "🇵🇹" },
+	{ code: "pt-BR", label: "Português (Brasil)", flag: "🇧🇷" },
+	{ code: "nl-NL", label: "Nederlands", flag: "🇳🇱" },
+	{ code: "pl-PL", label: "Polski", flag: "🇵🇱" },
+	{ code: "ru-RU", label: "Русский", flag: "🇷🇺" },
+	{ code: "ja-JP", label: "日本語", flag: "🇯🇵" },
+	{ code: "ko-KR", label: "한국어", flag: "🇰🇷" },
+	{ code: "zh-CN", label: "中文（简体）", flag: "🇨🇳" },
+	{ code: "ar-SA", label: "العربية", flag: "🇸🇦" },
+	{ code: "tr-TR", label: "Türkçe", flag: "🇹🇷" },
+	{ code: "no-NO", label: "Norsk", flag: "🇳🇴" },
+	{ code: "da-DK", label: "Dansk", flag: "🇩🇰" },
+	{ code: "fi-FI", label: "Suomi", flag: "🇫🇮" },
+	{ code: "el-GR", label: "Ελληνικά", flag: "🇬🇷" },
+	{ code: "cs-CZ", label: "Čeština", flag: "🇨🇿" },
+	{ code: "hi-IN", label: "हिन्दी", flag: "🇮🇳" },
+];
+
+/** Resolves a loose code (e.g. "sv", "EN", "pt-br") to a known language entry. */
+export function findLanguage(code: string): PronounceLanguage | undefined {
+	const lower = code.trim().toLowerCase();
+	if (!lower) return undefined;
+	return (
+		LANGUAGES.find((l) => l.code.toLowerCase() === lower) ??
+		LANGUAGES.find((l) => l.code.toLowerCase().startsWith(lower.split("-")[0]))
+	);
+}
+
+export interface PronounceSettings {
+	/** Text typed right after a word to turn it into a speaker button, e.g. "::". */
+	triggerSequence: string;
+	/** BCP-47 code used when no other rule in the priority cascade applies. */
+	defaultLanguage: string;
+	rate: number;
+	pitch: number;
+	showInContextMenu: boolean;
+	/** Preferred voiceURI per language code, set from the settings tab. */
+	voicesByLanguage: Record<string, string>;
+}
+
+export const DEFAULT_SETTINGS: PronounceSettings = {
+	triggerSequence: "::",
+	defaultLanguage: "en-US",
+	rate: 0.9,
+	pitch: 1.0,
+	showInContextMenu: true,
+	voicesByLanguage: {},
+};
+
+export class PronounceSettingTab extends PluginSettingTab {
+	plugin: PronouncePlugin;
+
+	constructor(app: App, plugin: PronouncePlugin) {
+		super(app, plugin);
+		this.plugin = plugin;
+	}
+
+	display(): void {
+		const { containerEl } = this;
+		containerEl.empty();
+
+		containerEl.createEl("h3", { text: "Language" });
+
+		new Setting(containerEl)
+			.setName("Default language")
+			.setDesc(
+				"Used when a note has no lang frontmatter and no language was manually picked from the status bar."
+			)
+			.addDropdown((dropdown) => {
+				for (const language of LANGUAGES) {
+					dropdown.addOption(language.code, `${language.flag} ${language.label}`);
+				}
+				dropdown.setValue(this.plugin.settings.defaultLanguage);
+				dropdown.onChange(async (value) => {
+					this.plugin.settings.defaultLanguage = value;
+					await this.plugin.saveSettings();
+					this.plugin.updateStatusBar();
+					this.display();
+				});
+			});
+
+		const voiceSetting = new Setting(containerEl)
+			.setName("Voice")
+			.setDesc("Loading available voices for this language…");
+		this.plugin.tts.getVoicesForLang(this.plugin.settings.defaultLanguage).then((voices) => {
+			voiceSetting.setDesc(
+				voices.length > 0
+					? "System voice used to read the default language above."
+					: "No system voice found for this language on this device yet. It may need to be downloaded in your OS's accessibility settings, or the system default will be used."
+			);
+			voiceSetting.addDropdown((dropdown) => {
+				dropdown.addOption("", "System default");
+				for (const voice of voices) {
+					dropdown.addOption(voice.voiceURI, `${voice.name} (${voice.lang})`);
+				}
+				dropdown.setValue(this.plugin.settings.voicesByLanguage[this.plugin.settings.defaultLanguage] ?? "");
+				dropdown.onChange(async (value) => {
+					this.plugin.settings.voicesByLanguage[this.plugin.settings.defaultLanguage] = value;
+					await this.plugin.saveSettings();
+				});
+			});
+		});
+
+		containerEl.createEl("h3", { text: "Voice tuning" });
+
+		new Setting(containerEl)
+			.setName("Speech rate")
+			.setDesc("How fast the voice speaks. Lower is slower, useful for hearing foreign sounds clearly.")
+			.addSlider((slider) =>
+				slider
+					.setLimits(0.5, 1.5, 0.05)
+					.setValue(this.plugin.settings.rate)
+					.setDynamicTooltip()
+					.onChange(async (value) => {
+						this.plugin.settings.rate = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("Pitch")
+			.setDesc("Voice pitch.")
+			.addSlider((slider) =>
+				slider
+					.setLimits(0.8, 1.2, 0.05)
+					.setValue(this.plugin.settings.pitch)
+					.setDynamicTooltip()
+					.onChange(async (value) => {
+						this.plugin.settings.pitch = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		containerEl.createEl("h3", { text: "Behavior" });
+
+		new Setting(containerEl)
+			.setName("Show in context menu")
+			.setDesc('Adds a "Listen to pronunciation" entry to the editor right-click menu when text is selected.')
+			.addToggle((toggle) =>
+				toggle.setValue(this.plugin.settings.showInContextMenu).onChange(async (value) => {
+					this.plugin.settings.showInContextMenu = value;
+					await this.plugin.saveSettings();
+				})
+			);
+
+		new Setting(containerEl)
+			.setName("Inline trigger")
+			.setDesc(
+				'Typed right after a word to turn it into a 🔊 button, e.g. "word::". Add a language code right after to force it for that word, e.g. "bonjour::fr". Change this if it conflicts with another plugin, such as Dataview\'s inline fields (also "::").'
+			)
+			.addText((text) =>
+				text
+					.setPlaceholder("::")
+					.setValue(this.plugin.settings.triggerSequence)
+					.onChange(async (value) => {
+						if (!value.trim()) {
+							new Notice("Pronounce: the inline trigger cannot be empty.");
+							return;
+						}
+						this.plugin.settings.triggerSequence = value;
+						await this.plugin.saveSettings();
+					})
+			);
+	}
+}
