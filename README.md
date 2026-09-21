@@ -182,4 +182,7 @@ obsidian-pronounce/
 
 ---
 
+If Pronounce helps your language learning journey, consider [buying me a
+coffee ☕](https://ko-fi.com/louisvicat) to support development!
+
 Created by [Louis Vicat](https://louisvicat.com)
