@@ -1,7 +1,10 @@
 import { Editor, Menu, Notice, Plugin, TFile } from "obsidian";
 import { DEFAULT_SETTINGS, findLanguage, LANGUAGES, PronounceSettings, PronounceSettingTab } from "./settings";
 import { TtsService } from "./ttsService";
-import { createPronounceViewPlugin, registerReadingModeProcessor } from "./inlineWidget";
+import { createPronounceViewPlugin, findTriggerMatches, registerReadingModeProcessor } from "./inlineWidget";
+
+/** Pause between words when reading a whole note, in milliseconds. */
+const READ_NOTE_PAUSE_MS = 350;
 
 interface PronounceOptions {
 	forcedLang?: string;
@@ -29,6 +32,9 @@ export default class PronouncePlugin extends Plugin {
 	/** Google Translate-style toggle: clicking the same word again always flips Normal <-> Slow. */
 	private lastSpokenText: string | null = null;
 	private isSlowToggle = false;
+
+	/** Set while "Read marked words in note" is running; re-running the command stops it. */
+	private isReadingNote = false;
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
@@ -58,6 +64,14 @@ export default class PronouncePlugin extends Plugin {
 			id: "switch-language",
 			name: "Switch language",
 			callback: () => this.openLanguageMenu(),
+		});
+
+		this.addCommand({
+			id: "read-note",
+			name: "Read marked words in note",
+			editorCallback: (editor: Editor) => {
+				void this.pronounceNote(editor, this.app.workspace.getActiveFile()?.path);
+			},
 		});
 
 		this.registerEvent(
@@ -155,6 +169,45 @@ export default class PronouncePlugin extends Plugin {
 			rate,
 			pitch: this.settings.pitch,
 		});
+	}
+
+	/**
+	 * Reads every `~word~` / `~word:lang~` in the note top to bottom, pausing
+	 * briefly between each — a study/review pass over a vocabulary note.
+	 * Re-running the command while it's active stops it instead of restarting.
+	 * Bypasses the repeat-click slow-motion toggle entirely (that state is
+	 * for interactive clicking, not a scripted read-through) by calling
+	 * `tts.speak()` directly rather than `pronounce()`.
+	 */
+	async pronounceNote(editor: Editor, sourcePath: string | undefined): Promise<void> {
+		if (this.isReadingNote) {
+			this.isReadingNote = false;
+			this.tts.cancel();
+			new Notice("Pronounce: stopped.");
+			return;
+		}
+
+		const matches = findTriggerMatches(editor.getValue(), this.settings.triggerChar);
+		if (matches.length === 0) {
+			new Notice("Pronounce: no ~word~ found in this note.");
+			return;
+		}
+
+		this.isReadingNote = true;
+		new Notice(`Pronounce: reading ${matches.length} word${matches.length === 1 ? "" : "s"}…`);
+
+		for (const match of matches) {
+			if (!this.isReadingNote) break;
+
+			const lang = this.resolveLanguage(sourcePath, match.lang);
+			const voiceURI = this.settings.voicesByLanguage[lang];
+			await this.tts.speak(match.word, { lang, voiceURI, rate: this.settings.rate, pitch: this.settings.pitch });
+
+			if (!this.isReadingNote) break;
+			await new Promise((resolve) => window.setTimeout(resolve, READ_NOTE_PAUSE_MS));
+		}
+
+		this.isReadingNote = false;
 	}
 
 	/**

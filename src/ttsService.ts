@@ -182,9 +182,11 @@ export class TtsService {
 	}
 
 	/**
-	 * Speaks `text`. Must be called synchronously from within a user gesture
-	 * handler (click/tap) on iOS/Android, otherwise the browser silently
-	 * blocks playback.
+	 * Speaks `text`, resolving once the utterance has actually finished (or
+	 * errored/been interrupted) — not just once it's been queued — so callers
+	 * can await one word before speaking the next. Must be called
+	 * synchronously from within a user gesture handler (click/tap) on
+	 * iOS/Android, otherwise the browser silently blocks playback.
 	 *
 	 * `pickVoice` awaits voice loading, so rapid repeated clicks can have
 	 * several `speak()` calls in flight at once; without a request id an
@@ -224,7 +226,12 @@ export class TtsService {
 		utterance.pitch = options.pitch;
 		if (voice) utterance.voice = voice;
 
-		synth.speak(utterance);
+		await new Promise<void>((resolve) => {
+			utterance.onend = () => resolve();
+			// A later call's cancel(), or the engine erroring out, still ends this wait.
+			utterance.onerror = () => resolve();
+			synth.speak(utterance);
+		});
 	}
 
 	cancel(): void {
