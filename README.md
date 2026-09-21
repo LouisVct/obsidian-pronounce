@@ -46,7 +46,15 @@ quality note below for iOS); **Android is currently unsupported** — see
   - Right-click → *Listen to pronunciation*, or
   - Run the **Listen to selection** command from the command palette
     (assign your own hotkey, e.g. `Cmd/Ctrl + Shift + S`, in
-    Settings → Hotkeys).
+    Settings → Hotkeys), or
+  - On mobile, add it to your toolbar above the keyboard: Settings →
+    Mobile → *Manage toolbar options* → *Add global command* →
+    **Listen to selection**.
+- **Read a whole vocabulary note in one pass.** Run **Read marked words in
+  note** to have every `~word~` in the open note read aloud top to bottom,
+  with a short pause between each — a quick listening review of a whole
+  table without clicking every button. Run the command again to stop
+  partway through.
 - **Slow down on repeat, Google Translate-style.** Say the same word or
   phrase again right after the first play — whether from the same `🔊`
   button, a different button for that same text elsewhere in the note, or
@@ -141,9 +149,6 @@ Add `LouisVct/obsidian-pronounce` in the
   access, unavailable to a web-based Obsidian plugin. Desktop platforms
   (macOS, Windows, Linux) aren't affected — Enhanced/Premium/Natural voices
   there are correctly detected and preferred.
-- The mobile-toolbar quick-action button (above the keyboard) isn't wired up
-  yet — on mobile, use text selection + the context menu instead. Tracked as
-  a roadmap item.
 - Voice availability and quality otherwise depend entirely on what's
   installed on the underlying OS/browser; the plugin can't bundle or
   download voices itself. If a language sounds robotic or doesn't speak at
